@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Costos · Cerri</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#09111f;--card:#111d30;--card2:#162035;--line:#1d2e4a;--text:#e2e8f5;--muted:#6b7ea0;--blue:#38bdf8;--green:#4ade80;--warn:#fbbf24;--red:#f87171}
+html,body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh}
+#top{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(9,17,31,.97);border-bottom:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:10px}
+#mic{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;background:var(--card2);flex-shrink:0;outline:none;transition:all .2s}
+#mic.on{background:#dc2626;animation:ring 1.6s infinite}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}60%{box-shadow:0 0 0 14px rgba(220,38,38,0)}}
+#status{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#heard{position:fixed;top:70px;left:0;right:0;z-index:90;background:rgba(9,17,31,.95);border-bottom:1px solid var(--line);padding:8px 14px;font-size:12px;color:var(--muted);font-style:italic;min-height:34px;line-height:1.5}
+#main{padding:120px 14px 100px}
+.card{background:var(--card);border:1.5px solid var(--blue);border-radius:14px;padding:18px;animation:pop .3s ease;margin-bottom:12px}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.ctitle{font-size:11px;font-weight:600;color:var(--blue);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px}
+.cbody{font-size:14px;line-height:1.85;color:var(--text)}
+.thinking{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted);font-size:13px;animation:pulse 1.4s infinite;margin-bottom:12px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+#footer{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(9,17,31,.97);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:8px}
+#manual{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--text);outline:none}
+#manual::placeholder{color:var(--muted)}
+#askbtn{background:var(--blue);border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;color:#000;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="top">
+  <button id="mic">&#127908;</button>
+  <div id="status">Toca el microfono o escribi abajo</div>
+</div>
+<div id="heard">El profe habla → aparece aca lo que escucho...</div>
+<div id="main"><div id="answers"></div></div>
+<div id="footer">
+  <input id="manual" type="text" placeholder="Escribi la pregunta del profe..." autocomplete="off">
+  <button id="askbtn">Preguntar</button>
+</div>
+<script>
+var API_KEY = "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";
+
+var RESUMEN = "COSTOS Y PRESUPUESTOS - Prof. Cerri, IUA, Lic. en Logistica\n\n" +
+"UNIDAD 1\n" +
+"Costo: sacrificio economico para producir bienes o servicios. Se activa como inventario hasta que se vende.\n" +
+"Gasto: erogacion vinculada a funciones administrativas o comerciales. Va al resultado del periodo.\n" +
+"Diferencia costo-gasto: el costo se activa; el gasto se imputa al resultado del periodo.\n" +
+"Contabilidad de costos: identifica, recopila y analiza informacion de costos. Objetivo: suministrar datos para decisiones internas. Para usuarios internos (diferente a contabilidad financiera que es para externos).\n" +
+"Rentabilidad economica (Re): Utilidad antes intereses / Activo total. Mide eficiencia operativa.\n" +
+"Rentabilidad financiera (Rf): Utilidad neta / Patrimonio neto. Mide rendimiento del capital propio.\n" +
+"Esquema Du Pont: Re = Margen sobre ventas x Rotacion del activo. Margen = Utilidad/Ventas. Rotacion = Ventas/Activo.\n" +
+"Ciclo industrial mas largo que el comercial: incluye produccion, transformacion y almacenamiento antes de vender.\n" +
+"Sistema de informacion: conjunto de recursos para recopilar y transformar informacion util para decisiones.\n" +
+"Situacion patrimonial: activos, pasivos y PN - estructura de la empresa.\n" +
+"Situacion economica: ingresos, costos y utilidades - capacidad de generar resultados.\n" +
+"Situacion financiera: liquidez y capacidad de cumplir obligaciones en el corto plazo.\n" +
+"Costos logisticos: asociados al flujo fisico de materiales. Incluyen aprovisionamiento, almacenamiento, transporte y distribucion.\n" +
+"Objetivo economico: maximizar la rentabilidad.\n" +
+"Sectores economicos: Familia (consumidora), Empresa (productora), Estado (regulador), Resto del mundo (exportaciones/importaciones).\n" +
+"Clasificacion costos por variabilidad: fijos (no cambian con nivel de actividad), variables (proporcionales al nivel), mixtos.\n" +
+"Clasificacion costos por funcion: produccion (MPD+MOD+CIF), comercializacion, administracion, financiamiento.\n" +
+"Clasificacion costos por identificacion: directos (asignables al producto), indirectos (requieren prorrateo).\n\n" +
+"UNIDAD 2\n" +
+"Tres elementos del costo: 1) Materia Prima Directa (MPD), 2) Mano de Obra Directa (MOD), 3) Costos Indirectos de Fabricacion (CIF).\n" +
+"Costos primos = MPD + MOD.\n" +
+"Costos de conversion = MOD + CIF (para transformar la MP en producto terminado).\n" +
+"CIF: energia, mantenimiento, supervision, amortizacion de equipos de produccion. Se asignan mediante prorrateo.\n" +
+"Prorrateo primario: distribuye CIF entre centros de costo. Secundario: redistribuye servicios a produccion. Terciario: imputa a los productos.\n" +
+"Costeo ABC: asigna CIF segun actividades que consumen recursos. Generadores de costos (cost drivers): factores que determinan el consumo.\n" +
+"Costos de almacenamiento: infraestructura, mantenimiento, seguros, deterioro, capital inmovilizado.\n" +
+"Costos de ruptura de stock: perdida de ventas, penalidades, costos de urgencia cuando no hay inventario.\n" +
+"Control de inventarios: asegurar disponibilidad sin excesos. Equilibrio entre costo de almacenar y costo de ruptura.\n" +
+"Costos de distribucion: transporte, manipulacion, administracion de despachos y comercializacion.\n\n" +
+"UNIDAD 3\n" +
+"Sistema de costos: acumula, registra y asigna costos. Determina costo unitario y facilita el control.\n" +
+"Sistema por ordenes: para pedidos especificos. Costos se acumulan por orden mediante hoja de costos (MPD+MOD+CIF). Ventaja: precision.\n" +
+"Sistema por procesos: para producciones continuas y homogeneas. Costos se distribuyen entre todas las unidades.\n" +
+"Diferencia ordenes vs procesos: ordenes identifica costo de cada pedido; procesos distribuye entre todas las unidades.\n" +
+"Costeo por absorcion: TODOS los costos de produccion (fijos y variables) van al costo del producto. Obligatorio para estados contables. Incluye depreciacion.\n" +
+"Costeo variable (directo): solo costos variables van al producto. Costos fijos van al resultado del periodo. Util para analisis marginal. No valido para estados contables externos.\n" +
+"Costos estandar: predeterminados bajo condiciones normales de eficiencia. Se comparan con costos reales para analizar desvios.\n" +
+"Costos estimados: basados en datos historicos o proyecciones. Mas flexibles que los estandar.\n" +
+"Desvios: diferencia entre costo real y estandar. Pueden ser favorables o desfavorables.\n" +
+"Centros de costos: acumulan costos sin generar ingresos directamente. Centros de beneficios: tienen responsabilidad sobre ingresos y costos.\n\n" +
+"UNIDAD 4\n" +
+"Contribucion marginal unitaria (CMu): Precio de venta - Costo variable unitario. Lo que cada unidad aporta para cubrir costos fijos y generar utilidad.\n" +
+"Margen de contribucion (%): CMu / Precio de venta.\n" +
+"Punto de equilibrio (PE) fisico: Costos Fijos / CMu. Nivel donde ingresos = costos totales.\n" +
+"PE monetario: PE fisico x Precio unitario. O: CF / Margen de contribucion (%).\n" +
+"Margen de seguridad: Ventas actuales - Ventas en el PE. Cuanto pueden caer las ventas antes de tener perdidas.\n" +
+"Punto de cierre: nivel donde los ingresos no cubren los costos erogables (los que implican salida de caja). Se excluyen costos no erogables como depreciaciones.\n" +
+"Ventaja operativa (VO): CM Total / Utilidad. Mide cuanto impactan los costos fijos ante cambios en ventas. Si VO=2, un aumento del 10% en ventas genera 20% mas de utilidad.\n" +
+"Analisis CVU (costo-volumen-utilidad): estudia relacion entre costos, nivel de actividad y resultados.\n" +
+"Costos relevantes: los que CAMBIAN con la decision. Costos hundidos (ya pagos) NO son relevantes.\n" +
+"Mezcla optima con recurso escaso: criterio es la mayor CM por unidad de recurso escaso (no la mayor CMu). Ordenar de mayor a menor y asignar el recurso en ese orden.\n" +
+"Fabricar o comprar: Ahorro por unidad = Precio compra - Costo variable fabricar. Punto de indiferencia (PI) = CF adicionales / Ahorro. Si produccion > PI -> fabricar. Si produccion < PI -> comprar.\n" +
+"Seleccion de tecnologias: comparar CF y CV de cada alternativa. PI = nivel donde ambas tienen igual costo total. Por encima del PI conviene la de mayor CF y menor CV.\n" +
+"Producto con CM negativa: no necesariamente discontinuar. Analizar si absorbe costos fijos que otros no pueden cubrir.\n" +
+"Costo por km: suma de todos los costos mensuales / km mensuales. Para viajes adicionales con capacidad ociosa: solo costos variables relevantes. Los costos fijos (sueldo, seguro) ya estan pagos.\n\n" +
+"UNIDAD 5\n" +
+"Presupuesto: herramienta de planificacion que estima ingresos, costos y resultados para un periodo. Funciones: fijar objetivos, coordinar actividades, controlar desempeno.\n" +
+"Sistema presupuestario integral: conjunto de todos los presupuestos: ventas, produccion, compras, MOD, sueldos, CIF, gastos admin y ventas, inversiones, flujo de fondos, ER proyectado, balance proyectado.\n" +
+"Devengado: se registra cuando ocurre el hecho economico, independientemente de cobros o pagos. Base del Estado de Resultados.\n" +
+"Percibido: se registra cuando hay movimiento real de efectivo. Base del Flujo de Fondos.\n" +
+"Presupuesto economico: criterio devengado. Incluye depreciaciones.\n" +
+"Cuadro de fluir de fondos (flujo de fondos): criterio percibido. Solo cobros y pagos reales. NO incluye depreciaciones. Estructura: Saldo inicial + Cobranzas - Pagos = Saldo final. El saldo final de un mes es el saldo inicial del siguiente.\n" +
+"Ventajas flujo de fondos: visualiza capacidad de pago, detecta desfasajes entre ventas y cobros, preve necesidades de financiamiento o excedentes de caja.\n" +
+"Diferencia flujo de fondos vs estado de resultados: flujo=percibido, sin depreciacion, sueldos netos. ER=devengado, CON depreciacion, sueldos brutos+cargas.\n" +
+"Estado de resultados proyectado: criterio devengado. Estima ingresos, costos y utilidades. SI incluye depreciaciones.\n" +
+"Presupuesto de ventas: punto de partida del sistema. Estima cantidades y valores de ventas.\n" +
+"Presupuesto de produccion: Produccion = Ventas esperadas + Stock final deseado - Stock inicial.\n" +
+"Presupuesto de compras: Compras = (Produccion esperada x Consumo por unidad) + Stock final deseado - Stock inicial.\n" +
+"Presupuesto de mano de obra directa: estima horas requeridas x costo por hora. Solo personal de produccion.\n" +
+"Presupuesto de sueldos: estimacion del costo del personal de TODAS las areas (produccion, administracion, comercializacion). Incluye: salarios, cargas sociales (retenciones del empleado + contribuciones patronales), bonos, horas extra, ajustes por inflacion o paritarias. Importancia: controlar el gasto laboral, prever aumentos, negociar paritarias. Diferencia con MOD: el de MOD es solo para personal de produccion directa; el de sueldos incluye a todo el personal.\n" +
+"Presupuesto de CIF: agrupa todos los costos indirectos de produccion, clasificados en fijos y variables.\n" +
+"Presupuesto de existencias: niveles de inventario inicial y final. Existencia final = Existencia inicial + Produccion - Ventas.\n" +
+"Presupuesto de gastos admin y ventas: costos NO vinculados directamente a la produccion.\n" +
+"Presupuesto flexible: se adapta a distintos niveles de actividad. Permite comparar lo ejecutado con lo que deberia haberse ejecutado para ese volumen real.\n" +
+"Presupuesto fijo (estatico): se elabora para un unico nivel de actividad. No se ajusta.\n" +
+"Presupuesto base cero: cada gasto debe justificarse desde cero en cada periodo. Promueve eficiencia.\n" +
+"Presupuesto tradicional: parte del historial, ajustando por inflacion. Mas rapido pero puede perpetuar ineficiencias.\n" +
+"Presupuesto maestro: integracion de todos los presupuestos parciales. Plan global de la empresa.\n" +
+"Control presupuestario: comparacion de resultados reales con presupuestados. Detecta desvios y toma decisiones correctivas.\n" +
+"Lote optimo de compra (EOQ - Formula Wilson): EOQ = raiz(2 x P x Q / C x i). P=costo por pedido, Q=demanda anual, C=costo unitario, i=tasa de tenencia. En el lote optimo: costo de adquisicion = costo de tenencia.\n" +
+"Costo de adquisicion: costo de emitir cada pedido. Disminuye con pedidos mas grandes.\n" +
+"Costo de tenencia: costo de mantener el inventario. Aumenta con mayor stock.\n" +
+"Nivel de reposicion: consumo diario x (plazo de entrega + contingencia) + stock de seguridad.\n" +
+"Benchmarking: comparar practicas y procesos con organizaciones de excelencia para identificar oportunidades de mejora.\n" +
+"Cadena de valor (Porter): actividades primarias (logistica entrada, operaciones, logistica salida, marketing, servicio) y de apoyo (infraestructura, RRHH, tecnologia, aprovisionamiento).\n" +
+"JIT (Just in Time): minimiza el inventario recibiendo materiales justo cuando se necesitan. Elimina desperdicios.\n";
+
+function askClaude(question, callback) {
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "https://api.anthropic.com/v1/messages", true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.setRequestHeader("x-api-key", API_KEY);
+  xhr.setRequestHeader("anthropic-version", "2023-06-01");
+  xhr.setRequestHeader("anthropic-dangerous-direct-browser-access", "true");
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        try {
+          var data = JSON.parse(xhr.responseText);
+          callback(null, data.content[0].text);
+        } catch(e) {
+          callback("Error al parsear respuesta");
+        }
+      } else {
+        callback("Error " + xhr.status + ": " + xhr.responseText);
+      }
+    }
+  };
+  var body = JSON.stringify({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 600,
+    system: "Sos un asistente de examen de Costos y Presupuestos (IUA, Prof. Cerri). Respondé SIEMPRE en español, directo y claro, basandote EXCLUSIVAMENTE en este resumen:\n\n" + RESUMEN + "\n\nMaximo 120 palabras. Si hay formulas, incluirlas.",
+    messages: [{ role: "user", content: "El profesor pregunto: \"" + question + "\"\n\nRespondé basandote en el resumen." }]
+  });
+  xhr.send(body);
+}
+
+var adiv = document.getElementById("answers");
+
+function showThinking(q) {
+  adiv.innerHTML = "<div class=\"thinking\">Buscando respuesta para: \"" + q + "\"...</div>";
+}
+
+function process(question) {
+  if (!question || question.trim().length < 3) return;
+  showThinking(question);
+  askClaude(question.trim(), function(err, answer) {
+    if (err) {
+      adiv.innerHTML = "<div class=\"card\"><div class=\"ctitle\" style=\"color:var(--red)\">Error</div><div class=\"cbody\">" + err + "</div></div>";
+    } else {
+      adiv.innerHTML = "<div class=\"card\"><div class=\"ctitle\">Respuesta</div><div class=\"cbody\">" + answer.replace(/\n/g, "<br>") + "</div></div>";
+      window.scrollTo(0, 0);
+    }
+  });
+}
+
+var rec = null, running = false, debT = null;
+var mic = document.getElementById("mic");
+var status = document.getElementById("status");
+var heard = document.getElementById("heard");
+
+function initRec() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { status.textContent = "Solo funciona en Chrome."; return; }
+  rec = new SR();
+  rec.lang = "es-AR";
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.onstart = function() {
+    running = true;
+    mic.classList.add("on");
+    mic.textContent = "\uD83C\uDFA4";
+    status.textContent = "Escuchando al profe...";
+  };
+  rec.onresult = function(e) {
+    var final = "", interim = "";
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      var t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    var d = final || interim;
+    if (d) heard.textContent = "\uD83C\uDFA4 " + d;
+    if (final && final.trim().length > 4) {
+      clearTimeout(debT);
+      debT = setTimeout(function() { process(final.trim()); }, 700);
+    }
+  };
+  rec.onerror = function(e) {
+    if (e.error === "no-speech" || e.error === "aborted") return;
+    status.textContent = "Error: " + e.error + ". Toca para reiniciar.";
+  };
+  rec.onend = function() {
+    if (running) { try { rec.start(); } catch(e) {} }
+  };
+}
+
+mic.addEventListener("click", function() {
+  if (!rec) initRec();
+  if (!running) { running = true; try { rec.start(); } catch(e) {} }
+  else {
+    running = false; rec.stop();
+    mic.classList.remove("on");
+    mic.textContent = "\uD83C\uDFA4";
+    status.textContent = "Microfono apagado. Toca para activar.";
+  }
+});
+
+var manual = document.getElementById("manual");
+var askbtn = document.getElementById("askbtn");
+
+function sendManual() {
+  var q = manual.value.trim();
+  if (q.length > 2) { process(q); manual.value = ""; }
+}
+
+askbtn.addEventListener("click", sendManual);
+manual.addEventListener("keydown", function(e) { if (e.key === "Enter") sendManual(); });
+
+initRec();
+</script>
+</body>
+</html>
