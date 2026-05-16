@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Costos · Asistente Final Cerri</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#09111f;--card:#111d30;--card2:#162035;--line:#1d2e4a;--text:#e2e8f5;--muted:#6b7ea0;--blue:#38bdf8;--green:#4ade80;--warn:#fbbf24;--red:#f87171}
+html,body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+
+#top{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(9,17,31,.97);border-bottom:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:10px}
+#mic{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;background:var(--card2);flex-shrink:0;outline:none;transition:all .2s}
+#mic.on{background:#dc2626;animation:ring 1.6s infinite}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}60%{box-shadow:0 0 0 14px rgba(220,38,38,0)}}
+#statuswrap{flex:1;overflow:hidden}
+#status{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#badge{flex-shrink:0;font-size:11px;padding:3px 8px;border-radius:99px;background:var(--card2);color:var(--muted)}
+#badge.ok{background:rgba(74,222,128,.15);color:var(--green)}
+
+#heard{position:fixed;top:70px;left:0;right:0;z-index:90;background:rgba(9,17,31,.95);border-bottom:1px solid var(--line);padding:8px 14px;font-size:12px;color:var(--muted);font-style:italic;min-height:34px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+#main{padding:120px 14px 110px}
+
+.card{background:var(--card);border:1.5px solid var(--blue);border-radius:14px;padding:18px;animation:pop .3s ease;margin-bottom:12px}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.ctitle{font-size:11px;font-weight:600;color:var(--blue);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px}
+.cbody{font-size:14px;line-height:1.85;color:var(--text)}
+.cbody strong{color:var(--warn);font-weight:600}
+
+.thinking{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted);font-size:13px;animation:pulse 1.4s infinite;margin-bottom:12px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+#nomatch{display:none;text-align:center;padding:30px 20px;color:var(--muted);font-size:14px}
+
+#footer{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(9,17,31,.97);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:8px}
+#manual{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text);outline:none}
+#manual::placeholder{color:var(--muted)}
+#askbtn{background:var(--blue);border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;color:#000;cursor:pointer;white-space:nowrap}
+#askbtn:active{transform:scale(.97)}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <button id="mic">🎤</button>
+  <div id="statuswrap">
+    <div id="status">Tocá el 🎤 — Claude responde cualquier pregunta de Cerri</div>
+  </div>
+  <div id="badge">—</div>
+</div>
+
+<div id="heard">El profe habla → acá aparece lo que escucho…</div>
+
+<div id="main">
+  <div id="answers"></div>
+  <div id="nomatch">🤔 No entendí la pregunta. Escribila abajo y tocá Preguntar.</div>
+</div>
+
+<div id="footer">
+  <input id="manual" type="text" placeholder="Escribí la pregunta del profe…" autocomplete="off" autocorrect="off" spellcheck="false">
+  <button id="askbtn">Preguntar</button>
+</div>
+
+<script>
+const API_KEY = "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";
+
+const RESUMEN = ;
+
+async function askClaude(question) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": API_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      system: `Sos un asistente de examen universitario de Costos y Presupuestos (IUA, Licenciatura en Logística, Prof. Cerri). Tu ÚNICA función es responder preguntas del profesor basándote EXCLUSIVAMENTE en el siguiente resumen de la materia. 
+
+REGLAS:
+- Responde SIEMPRE en español
+- Sé directo, claro y conciso — la respuesta debe poder leerse en 20-30 segundos
+- Incluye fórmulas si las hay
+- Si la pregunta combina varios temas, respondé integrando los conceptos
+- NUNCA improvises información que no esté en el resumen
+- Siempre respondé algo relevante aunque la pregunta sea vaga o imprecisa
+- Máximo 120 palabras
+
+RESUMEN COMPLETO:
+${RESUMEN}`,
+      messages: [{ 
+        role: "user", 
+        content: `El profesor preguntó: "${question}"\n\nRespondé basándote en el resumen. Directo y claro.`
+      }]
+    })
+  });
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content[0].text;
+}
+
+const adiv = document.getElementById('answers');
+const nmatch = document.getElementById('nomatch');
+const badge = document.getElementById('badge');
+
+function showThinking(q) {
+  nmatch.style.display = 'none';
+  adiv.innerHTML = `<div class="thinking">🤔 Claude está buscando la respuesta para: "${q}"…</div>`;
+  badge.textContent = '...';
+  badge.className = '';
+}
+
+async function process(question) {
+  if (!question || question.trim().length < 3) return;
+  showThinking(question);
+  try {
+    const answer = await askClaude(question.trim());
+    adiv.innerHTML = `
+      <div class="card">
+        <div class="ctitle">★ ${question}</div>
+        <div class="cbody">${answer.replace(/\*\*(.*?)\*\*/g,'<strong></strong>').replace(/\n/g,'<br>')}</div>
+      </div>`;
+    badge.textContent = '✓';
+    badge.className = 'ok';
+    window.scrollTo({top:0, behavior:'smooth'});
+  } catch(e) {
+    adiv.innerHTML = `<div class="card" style="border-color:var(--red)"><div class="ctitle" style="color:var(--red)">Error</div><div class="cbody">No se pudo conectar con Claude. Verificá la conexión a internet e intentá de nuevo.</div></div>`;
+    badge.textContent = '!';
+    badge.className = '';
+  }
+}
+
+// ── MIC ──
+let rec = null, running = false, debT = null;
+const mic = document.getElementById('mic');
+const status = document.getElementById('status');
+const heard = document.getElementById('heard');
+
+function initRec() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { status.textContent = '⚠️ Solo funciona en Chrome.'; return; }
+  rec = new SR();
+  rec.lang = 'es-AR';
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
+
+  rec.onstart = () => {
+    running = true;
+    mic.classList.add('on');
+    mic.textContent = '🎙️';
+    status.textContent = 'Escuchando al profe…';
+  };
+
+  rec.onresult = (e) => {
+    let final = '', interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    const d = final || interim;
+    if (d) heard.textContent = '🎤 ' + d;
+    if (final && final.trim().length > 4) {
+      clearTimeout(debT);
+      debT = setTimeout(() => process(final.trim()), 700);
+    }
+  };
+
+  rec.onerror = (e) => {
+    if (e.error === 'no-speech' || e.error === 'aborted') return;
+    status.textContent = 'Error mic: ' + e.error + '. Tocá para reiniciar.';
+  };
+
+  rec.onend = () => {
+    if (running) {
+      try { rec.start(); } catch(e) {}
+    }
+  };
+}
+
+mic.addEventListener('click', () => {
+  if (!rec) initRec();
+  if (!running) {
+    running = true;
+    try { rec.start(); } catch(e) {}
+  } else {
+    running = false;
+    rec.stop();
+    mic.classList.remove('on');
+    mic.textContent = '🎤';
+    status.textContent = 'Micrófono apagado. Tocá para activar.';
+  }
+});
+
+// ── MANUAL ──
+const manual = document.getElementById('manual');
+const askbtn = document.getElementById('askbtn');
+
+function sendManual() {
+  const q = manual.value.trim();
+  if (q.length > 2) {
+    process(q);
+    manual.value = '';
+    manual.blur();
+  }
+}
+
+askbtn.addEventListener('click', sendManual);
+manual.addEventListener('keydown', e => { if (e.key === 'Enter') sendManual(); });
+
+initRec();
+</script>
+</body>
+</html>
